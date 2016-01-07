@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 using Abp.Authorization;
 using Abp.Collections;
 using Abp.IdentityFramework;
-using Abp.Localization;
 using Abp.Modules;
 using Abp.TestBase;
 using Abp.Zero.SampleApp.EntityFramework;
 using Abp.Zero.SampleApp.MultiTenancy;
 using Abp.Zero.SampleApp.Roles;
-using Abp.Zero.SampleApp.Tests.Localization;
+using Abp.Zero.SampleApp.Tests.TestDatas;
 using Abp.Zero.SampleApp.Users;
 using Castle.MicroKernel.Registration;
 using EntityFramework.DynamicFilters;
@@ -51,17 +50,14 @@ namespace Abp.Zero.SampleApp.Tests
 
         private void CreateInitialData()
         {
-            UsingDbContext(context =>
-                           {
-                               context.Tenants.Add(new Tenant(Tenant.DefaultTenantName, Tenant.DefaultTenantName));
-                           });
-            UsingDbContext(context => new InitialTestLanguagesBuilder(context).Build());
+            UsingDbContext(context => new InitialTestDataBuilder(context).Build());
         }
 
         protected override void AddModules(ITypeList<AbpModule> modules)
         {
             base.AddModules(modules);
-            modules.Add<SampleAppModule>();
+
+            modules.Add<SampleAppEntityFrameworkModule>();
         }
 
         public void UsingDbContext(Action<AppDbContext> action)
@@ -96,7 +92,17 @@ namespace Abp.Zero.SampleApp.Tests
                     return context.Tenants.Single(t => t.TenancyName == Tenant.DefaultTenantName);
                 });
         }
-        
+
+        protected User GetDefaultTenantAdmin()
+        {
+            var defaultTenant = GetDefaultTenant();
+            return UsingDbContext(
+                context =>
+                {
+                    return context.Users.Single(u => u.UserName == User.AdminUserName && u.TenantId == defaultTenant.Id);
+                });
+        }
+
         protected async Task<Role> CreateRole(string name)
         {
             return await CreateRole(name, name);
